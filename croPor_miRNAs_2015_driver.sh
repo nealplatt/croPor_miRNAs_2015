@@ -78,4 +78,78 @@ echo "" >>$RESULTS_DIR/seqCountData.tab
 echo "" >>$RESULTS_DIR/seqCountData.tab
 echo "" >>$RESULTS_DIR/seqCountData.tab
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+################################################################################
+#now raw data needs to be cleaned and processed
+
+
+mkdir $RESULTS_DIR/seqQCd
+
+
+for RAW_READS in $RESULTS_DIR/seqRaw/*.fastq
+do
+
+      SAMPLE_ID=$(basename $RAW_READS .fastq)
+
+
+        $FASTX_DIR/fastx_clipper                                               \
+                -v                                                              \
+                -a $ADAPTER_SEQ                                                 \
+                -i $RAW_READS                                                   \
+                | $FASTX_HOME/fastq_quality_filter                              \
+                        -Q33                                                    \
+                        -q 20                                                   \
+                        -p 50							\
+                        -o $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clipped.fastq"  
+
+        $FASTX_DIR/fastx_quality_stats                                \
+                -Q33                                                   \
+                -o $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clipped.stats"      \
+                -i $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clipped.fastq"
+
+        $FASTX_DIR/fastx_nucleotide_distribution_graph.sh             \
+                -i $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clipped.stats"      \
+                -o $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clippedNUC.png"     \
+                -t $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clipped"
+
+        $FASTX_DIR/fastq_quality_boxplot_graph.sh                     \
+                -i $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clipped.stats"      \
+                -o $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clippedBOX.png"     \
+                -t $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clipped"
+done
+
+
+#count raw data
+echo "#####################" >>$RESULTS_DIR/seqCountData.tab
+echo "###    CLIPPED    ###" >>$RESULTS_DIR/seqCountData.tab
+echo "#####################" >>$RESULTS_DIR/seqCountData.tab
+wc -l $RESULTS_DIR/seqQCd/*clipped.fastq | awk '{print $1/4"\t"$2}' >>$RESULTS_DIR/seqCountData.tab
+echo "" >>$RESULTS_DIR/seqCountData.tab
+echo "" >>$RESULTS_DIR/seqCountData.tab
+echo "" >>$RESULTS_DIR/seqCountData.tab
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
