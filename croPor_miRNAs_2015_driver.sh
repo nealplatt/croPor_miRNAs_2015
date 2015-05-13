@@ -179,3 +179,44 @@ fastaparse.pl $DATA_DIR/mature_noSpace.fa -b >$DATA_DIR/mature_cleaned.fa
 MIRBASE_MATURE=$DATA_DIR/mature_cleaned.fa
 MIRBASE_HAIRPIN=$DATA_DIR/hairpin_cleaned.fa
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#map all small RNA reads to the genome using mapper.pl
+$MIRDEEP_BIN/mapper.pl 			\
+	config.txt 			\
+	-d 				\
+	-e 				\
+	-h 				\
+	-m 				\
+	-j 				\
+	-l 18 				\
+	-v 				\
+	-n 				\
+	-s config_mapperProcessed.fa 	\
+	-t config_mapper.arf 		\
+	-p $GENOME  					
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
