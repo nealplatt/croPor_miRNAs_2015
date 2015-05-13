@@ -196,27 +196,15 @@ $MIRDEEP_BIN/mapper.pl 			\
 	-t config_mapper.arf 		\
 	-p $GENOME  					
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+$MIRDEEP_BIN/miRDeep2.pl 		\
+	config_mapperProcessed.fa	\
+	$GENOME				\
+	config_mapper.arf	 	\
+	$MIRBASE_MATURE			\
+	none				\
+	$MIRBASE_HAIRPIN		\
+	-z .initialPred			\
+	-P
 
