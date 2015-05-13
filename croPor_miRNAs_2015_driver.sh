@@ -129,27 +129,53 @@ echo "" >>$RESULTS_DIR/seqCountData.tab
 echo "" >>$RESULTS_DIR/seqCountData.tab
 echo "" >>$RESULTS_DIR/seqCountData.tab
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#start running miRNA prediction (inital on all samples combined).
+
+mkdir $RESULTS_DIR/initalPredictions
+cd $RESULTS_DIR/initalPredictions
+
+#create config file
+
+echo "$RESULTS_DIR/seqQCd/D10_testis_clipped.fastq	D10"  >config.txt
+echo "$RESULTS_DIR/seqQCd/D6_testis_clipped.fastq	D06" >>config.txt
+echo "$RESULTS_DIR/seqQCd/H6_jawSkin_clipped.fastq	H06" >>config.txt
+echo "$RESULTS_DIR/seqQCd/J4_cloaca_clipped.fastq	J04" >>config.txt
+echo "$RESULTS_DIR/seqQCd/J6_bellySkin_clipped.fastq	J06" >>config.txt
+echo "$RESULTS_DIR/seqQCd/K1_smIntestine_clipped.fastq	K01" >>config.txt
+echo "$RESULTS_DIR/seqQCd/M2_brain_clipped.fastq	M02" >>config.txt
+echo "$RESULTS_DIR/seqQCd/M6_tongue_clipped.fastq	M06" >>config.txt
+echo "$RESULTS_DIR/seqQCd/O4_liver_clipped.fastq	O04" >>config.txt
+echo "$RESULTS_DIR/seqQCd/P6_heart_clipped.fastq	P06" >>config.txt
+echo "$RESULTS_DIR/seqQCd/P7_stomach_clipped.fastq	P07" >>config.txt
+echo "$RESULTS_DIR/seqQCd/P8_heart_clipped.fastq	P08" >>config.txt
+echo "$RESULTS_DIR/seqQCd/Q3_brain_clipped.fastq	Q03" >>config.txt
+echo "$RESULTS_DIR/seqQCd/D2_testis_clipped.fastq	D02" >>config.txt
+echo "$RESULTS_DIR/seqQCd/E1_testis_clipped.fastq	E01" >>config.txt
+echo "$RESULTS_DIR/seqQCd/J2_spleen_clipped.fastq	J02" >>config.txt
 
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#get mirbase sequences
+wget 								\
+	--directory-prefix=$DATA_DIR 				\
+	ftp://mirbase.org/pub/mirbase/CURRENT/hairpin.fa.gz
+
+wget 								\
+	--directory-prefix=$DATA_DIR 				\
+	ftp://mirbase.org/pub/mirbase/CURRENT/mature.fa.gz
+
+#these files have white spaces that need to be removed (for miRDeep2)
+zcat $DATA_DIR/hairpin.fa.gz | cut -f1 -d" ">$DATA_DIR/hairpin_noSpace.fa
+zcat $DATA_DIR/mature.fa.gz | cut -f1 -d" " >$DATA_DIR/mature_noSpace.fa
+
+#and non-canonical nucleotides
+fastaparse.pl $DATA_DIR/hairpin_noSpace.fa -b >$DATA_DIR/hairpin_cleaned.fa
+fastaparse.pl $DATA_DIR/mature_noSpace.fa -b >$DATA_DIR/mature_cleaned.fa
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+MIRBASE_MATURE=$DATA_DIR/mature_cleaned.fa
+MIRBASE_HAIRPIN=$DATA_DIR/hairpin_cleaned.fa
 
