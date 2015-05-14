@@ -214,9 +214,18 @@ wget 								\
 zcat $DATA_DIR/hairpin.fa.gz | cut -f1 -d" ">$DATA_DIR/hairpin_noSpace.fa
 zcat $DATA_DIR/mature.fa.gz | cut -f1 -d" " >$DATA_DIR/mature_noSpace.fa
 
-#and non-canonical nucleotides
-fastaparse.pl $DATA_DIR/hairpin_noSpace.fa -b >$DATA_DIR/hairpin_cleaned.fa
-fastaparse.pl $DATA_DIR/mature_noSpace.fa -b >$DATA_DIR/mature_cleaned.fa
+#and non-canonical nucleotides and convert to SL (for easier parsing)
+fastaparse.pl $DATA_DIR/hairpin_noSpace.fa -b 	\
+	| $FASTX_DIR/fasta_formatter -w 0	\
+	 >$DATA_DIR/hairpin_cleaned.fa
+
+fastaparse.pl $DATA_DIR/mature_noSpace.fa -b 	\
+	| $FASTX_DIR/fasta_formatter -w 0	\
+	 >$DATA_DIR/mature_cleaned.fa
+
+#grep out the chicken miRNAs
+grep "gga" mature_cleaned.fa >gga_matureMirnas.fa
+grep "gga" hairpin_cleaned.fa >gga_hairpinMirnas.fa
 
 # designate the processed miRBase files for future analyses
 MIRBASE_MATURE=$DATA_DIR/mature_cleaned.fa
