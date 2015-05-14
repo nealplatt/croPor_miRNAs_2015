@@ -136,7 +136,8 @@ do
 	# Step 3-2a - remove adapters and trim sequences were half the read is
 	#   Q20 or less
         $FASTX_DIR/fastx_clipper                                               	\
-                -v                                                              \
+                -n								\
+		-l 10                                                           \
                 -a $ADAPTER_SEQ                                                 \
                 -i $RAW_READS                                                   \
                 | $FASTX_HOME/fastq_quality_filter                              \
@@ -230,8 +231,8 @@ fastaparse.pl $RESULTS_DIR/mature_noSpace.fa -b 	\
 	 >$RESULTS_DIR/mature_cleaned.fa
 
 #grep out the chicken miRNAs
-grep -A1 "gga" $RESULTS_DIR/mature_cleaned.fa >$RESULTS_DIR/gga_matureMirnas.fa
-grep -A1 "gga" $RESULTS_DIR/hairpin_cleaned.fa >$RESULTS_DIR/gga_hairpinMirnas.fa
+grep -A1 "gga" $RESULTS_DIR/mature_cleaned.fa  | grep -v -- "^--$" >$RESULTS_DIR/gga_matureMirnas.fa
+grep -A1 "gga" $RESULTS_DIR/hairpin_cleaned.fa | grep -v -- "^--$" >$RESULTS_DIR/gga_hairpinMirnas.fa
 
 # designate the processed miRBase files for future analyses
 MIRBASE_MATURE=$RESULTS_DIR/gga_matureMirnas.fa
