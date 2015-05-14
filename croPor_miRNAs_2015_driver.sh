@@ -20,6 +20,12 @@ MIRDEEP_DIR="/lustre/work/apps/mirdeep2_0_0_7/"
 # directory to bowtie that is included with miRDeep2 
 MIRDEEP_BOWTIE="$MIRDEEP_DIR/essentials/bowtie-1.1.1"
 
+# directory to blast
+BLAST_HOME=/lustre/work/apps/blast/bin
+
+# directory to bedtools
+BEDTOOLS_HOME=/lustre/work/apps/bedtools-2.17.0/bin
+
 # general work directory...think of as project "home"
 WORK_DIR="/lustre/scratch/roplatt/croPor_miRNAs_2015"
 
@@ -263,3 +269,97 @@ $MIRDEEP_BIN/miRDeep2.pl 		\
 	-z .initialPred			\
 	-P
 
+
+
+################################################################################
+#
+# Step 5) Process miRDeep2 results
+#
+################################################################################
+
+#dowload rRNA and tRNA dbs - prep for blast
+#download miRbase current release - prep for blast
+
+TR_RNA_DB=/lustre/scratch/roplatt/crocSmallRNA/analyses/tRNA_rRNA_2015-04-14.fas
+MIRNA_DB=/lustre/scratch/roplatt/crocSmallRNA/analyses/miRBase_v21.fas
+
+
+
+
+
+ bedtools sort -i result_05_05_2015_t_15_10_49.initialALL.bed >result_05_05_2015_t_15_10_49.initialALL_sorted.bed 
+
+
+merge -d -1 -i result_05_05_2015_t_15_10_49.initialALL_sorted.bed | bedtools intersect -wao -a - -b result_05_05_2015_t_15_10_49.initialALL_sorted.bed >tmp
+
+
+cat tmp | perl ../bin/removeOverlappingMirnas.pl >initialAll_nonOverlap_miRDeep2Predictions.bed
+
+bedtools getfasta -name -fi ../../genomes/croc_sub2.assembly.fasta  -bed initialAll_nonOverlap_miRDeep2Predictions.bed -fo initialAll_nonOverlap_miRDeep2Predictions.fas
+
+/lustre/work/apps/blast/bin/makeblastdb -in tRNA_rRNA_2015-04-14.fas -dbtype nucl
+
+/lustre/work/apps/blast/bin/blastn -db tRNA_rRNA_2015-04-14.fas -query initialAll_nonOverlap_miRDeep2Predictions.fas -outfmt 6 | sort -k1,1 -k12,12gr -k11,11g -k3,3gr | sort -u -k1,1 --merge >initialAll_vs_trRNA_blastn.out
+
+/lustre/work/apps/blast/bin/makeblastdb -in miRBase_v21.fas -dbtype nucl
+
+#go to local computer to create DB and combine.
+# delete first table in mirdeep results
+remove "NOVEL:"
+
+combine in sql
+
+vertical lookup in excel
+
+create fasta -> cdhitsuite
+awk '{print ">"$17"\n"$14}' miRBaseAnnotations_miRDeepPreds_toCDHit.txt >toCDHit_mature.fas
+ awk '{print ">"$17"\n"$15}' miRBaseAnnotations_miRDeepPreds_toCDHit.txt >toCDHit_precursor.fas
+
+
+
+for SORTED_BED in *_sorted.bed
+do
+
+	#create a base name for downstream files
+	BASE=$(basename $SORTED_BED _sorted.bed)
+	SAMPLE_ID=$(cut -c1,2)
+
+	
+	#for each file find the BEST scoring miRNA from those that overlap
+	$BEDTOOLS_HOME/bedtools merge 	\
+		-d -1 			\
+		-i $SORTED_BED 		\
+		| $BEDTOOLS_HOME/bedtools intersect 	\
+			-wao 				\
+			-a - 				\
+			-b $SORTED_BED 			\
+		| perl removeOverlappingMirnas.pl \
+			>$BASE"_nonOverlapMirnas.bed"
+
+
+	#extract the fasta sequence from the best scoring miRNA hairpin
+	$BEDTOOLS_HOME/bedtools getfasta 		\
+		-name					\
+		-fi $GENOME 				\
+		-bed $BASE"_nonOverlapMirnas.bed"	\
+		-fo $BASE".fasta"
+
+	#and blast that seqeunce against a tRNA and rRNA db
+	$BLAST_HOME/blastn 					\
+		-db $TR_RNA_DB		 			\
+		-query $BASE".fasta"  				\
+		-out $BASE"_hairpins_vs_trRNA_blastn.out" 	\
+		-outfmt 6 					\
+		| sort -k1,1 -k12,12gr -k11,11g -k3,3gr 	\
+		| sort -u -k1,1 --merge >$BASE"_hairpins_vs_trRNA_blastn.out"
+		
+	#...then against a miRNA db (only output highest scoring seq)
+	$BLAST_HOME/blastn 					\
+		-db $MIRNA_DB	 				\
+		-query $BASE".fasta"  				\
+		-out $BASE"_hairpins_vs_miRBase21_blastn.out" 	\
+		-outfmt 6 					\
+		| sort -k1,1 -k12,12gr -k11,11g -k3,3gr 	\
+		| sort -u -k1,1 --merge >$BASE"_hairpins_vs_miRBase21_blastn.out"
+	
+done
