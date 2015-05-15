@@ -293,43 +293,50 @@ $MIRDEEP_BIN/miRDeep2.pl 		\
 #6) down the line remove miRNAs that are only expressed in one tissue
 
 
-MIRDEEP_RESULT_FILE_TSV= #<-insert this here
+MIRDEEP_RESULT_FILE_TSV=result_14_05_2015_t_15_35_12.test.csv
 
+TR_RNA_DB=$RESULTS_DIR/tRNA_rRNA_2015-05-15.fas
+
+#------------------------
+#Step 5-1
+# make a file of miRNA hairpins >= 1 scrore 
+
+#Scroll through results file to find the lines containing novel miRNAs
 cat -n $MIRDEEP_RESULT_FILE_TSV
-#scrolling through the result.csv file shows that the newly predicted miRNAs
-# are on lines 27-462.  Need to use the fasta sequences for these to quality filter
+#In this case lines 27-462 contain novel miRNAs
 
- 
-
+#cat only the novel miRNAs and print out the ones score >=1 to a fasta file
 cat $MIRDEEP_RESULT_FILE_TSV | head -462 | tail -435 	\
 	| awk '{if ($2 >= 1) print">"$1"\n"$18}' 	\
 	>$RESULTS_DIR/predictedHairpin.fas
 
+#------------------------
+#Step 5-2
+# Compare miRNA hairpins to tRNAs and rRNAs via Blast
 
 #dowload rRNA and tRNA dbs - prep for blast
-wget 					\
-	--directory-prefix=$DATA_DIR	\
+wget 									\
+	--directory-prefix=$DATA_DIR					\
 	http://gtrnadb.ucsc.edu/download/tRNAs/eukaryotic-tRNAs.fa.gz
 
 #rRNA db done by hand from http://www.arb-silva.de/download/
 # make sure to get both the Large and Small subunits.
 # Downloaded all vertebrate rRNAs to >$DATA_DIR/eukaryotic-rRNAs.fa.gz
 
+#combine files
 zcat $DATA_DIR/eukaryotic-tRNAs.fa.gz $DATA_DIR/eukaryotic-rRNAs.fa.gz \
-	>$RESULTS_DIR/tRNA_rRNA_2015-05-15.fas
+	>$TR_RNA_DB
 
-TR_RNA_DB=$RESULTS_DIR/tRNA_rRNA_2015-05-15.fas
-
-
-
-$BLAST_DIR/makeblastdb -in tRNA_rRNA_2015-04-14.fas -dbtype nucl
+#then make a blast db
+$BLAST_DIR/makeblastdb -in $TR_RNA_DB -dbtype nucl
 
 $BLAST_DIR/blastn \
-	-db tRNA_rRNA_2015-04-14.fas \
-	-query initialAll_nonOverlap_miRDeep2Predictions.fas \
+	-db $TR_RNA_DB \
+	-query $RESULTS_DIR/predictedHairpin.fas \
 	-outfmt 6 \
-		| sort -k1,1 -k12,12gr -k11,11g -k3,3gr \
-		| sort -u -k1,1 --merge >initialAll_vs_trRNA_blastn.out
+	>$RESULTS_DIR/predictedHairpin_vs_trRNA_blastn.out
+
+#in this case there were no hits to r or tRNAs that need to be removed
 
 
 
@@ -401,3 +408,27 @@ do
 		| sort -u -k1,1 --merge >$BASE"_hairpins_vs_miRBase21_blastn.out"
 	
 done
+
+
+
+
+
+
+
+
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+#
+# Commands to save for later (may be useful)
+#
+# $BLAST_DIR/blastn \
+#	-db tRNA_rRNA_2015-04-14.fas \
+#	-query initialAll_nonOverlap_miRDeep2Predictions.fas \
+#	-outfmt 6 \
+#		| sort -k1,1 -k12,12gr -k11,11g -k3,3gr \
+#		| sort -u -k1,1 --merge >initialAll_vs_trRNA_blastn.out
+
