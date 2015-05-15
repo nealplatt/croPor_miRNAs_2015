@@ -21,10 +21,10 @@ MIRDEEP_DIR="/lustre/work/apps/mirdeep2_0_0_7/"
 MIRDEEP_BOWTIE="$MIRDEEP_DIR/essentials/bowtie-1.1.1"
 
 # directory to blast
-BLAST_HOME=/lustre/work/apps/blast/bin
+BLAST_DIR=/lustre/work/apps/blast/bin
 
 # directory to bedtools
-BEDTOOLS_HOME=/lustre/work/apps/bedtools-2.17.0/bin
+BEDTOOLS_DIR=/lustre/work/apps/bedtools-2.17.0/bin
 
 # general work directory...think of as project "home"
 WORK_DIR="/lustre/scratch/roplatt/croPor_miRNAs_2015"
@@ -278,29 +278,61 @@ $MIRDEEP_BIN/miRDeep2.pl 		\
 #
 ################################################################################
 
+#quality filtering done in XXXXX steps.
+
+#1) Filter out any miRNAs with mirdeep score less than 1 (awk)
+
+#2) All predicted miRNAs that are similar to tRNAs or rRNAs are removed. (blast)
+
+#3) Keep on the highest scoring in overlapping pairs (perl/bedtools)
+
+#4) Overlap with the known/identified galGal miRNAs, retain galGal designation (bedtools)
+
+#5) create a fasta file to run with quantifier.pl (bedtools)
+
+#6) down the line remove miRNAs that are only expressed in one tissue
+
+
+#scrolling through the result.csv file shows that the newly predicted miRNAs
+# are on lines 27-462.  Need to use the fasta sequences for these to quality filter
+
+MIRDEEP_RESULT_FILE_TSV= <-insert this here
+
+
+
+
 #dowload rRNA and tRNA dbs - prep for blast
-#download miRbase current release - prep for blast
+wget 					\
+	--directory-prefix=$DATA_DIR	\
+	http://gtrnadb.ucsc.edu/download/tRNAs/eukaryotic-tRNAs.fa.gz
 
-TR_RNA_DB=/lustre/scratch/roplatt/crocSmallRNA/analyses/tRNA_rRNA_2015-04-14.fas
-MIRNA_DB=/lustre/scratch/roplatt/crocSmallRNA/analyses/miRBase_v21.fas
+#rRNA db done by hand from http://www.arb-silva.de/download/
+# make sure to get both the Large and Small subunits.
+# Downloaded all vertebrate rRNAs to >$DATA_DIR/eukaryotic-rRNAs.fa.gz
 
+zcat $DATA_DIR/eukaryotic-tRNAs.fa.gz $DATA_DIR/eukaryotic-rRNAs.fa.gz \
+	>$RESULTS_DIR/tRNA_rRNA_2015-05-15.fas
 
+TR_RNA_DB=$RESULTS_DIR/tRNA_rRNA_2015-05-15.fas
+
+https://github.com/nealplatt/croPor_miRNAs_2015.git
+
+$BLAST_DIR/makeblastdb -in tRNA_rRNA_2015-04-14.fas -dbtype nucl
+
+$BLAST_DIR/blastn \
+	-db tRNA_rRNA_2015-04-14.fas \
+	-query initialAll_nonOverlap_miRDeep2Predictions.fas \
+	-outfmt 6 \
+		| sort -k1,1 -k12,12gr -k11,11g -k3,3gr \
+		| sort -u -k1,1 --merge >initialAll_vs_trRNA_blastn.out
 
 
 
  bedtools sort -i result_05_05_2015_t_15_10_49.initialALL.bed >result_05_05_2015_t_15_10_49.initialALL_sorted.bed 
-
-
 merge -d -1 -i result_05_05_2015_t_15_10_49.initialALL_sorted.bed | bedtools intersect -wao -a - -b result_05_05_2015_t_15_10_49.initialALL_sorted.bed >tmp
-
-
 cat tmp | perl ../bin/removeOverlappingMirnas.pl >initialAll_nonOverlap_miRDeep2Predictions.bed
-
 bedtools getfasta -name -fi ../../genomes/croc_sub2.assembly.fasta  -bed initialAll_nonOverlap_miRDeep2Predictions.bed -fo initialAll_nonOverlap_miRDeep2Predictions.fas
 
-/lustre/work/apps/blast/bin/makeblastdb -in tRNA_rRNA_2015-04-14.fas -dbtype nucl
-
-/lustre/work/apps/blast/bin/blastn -db tRNA_rRNA_2015-04-14.fas -query initialAll_nonOverlap_miRDeep2Predictions.fas -outfmt 6 | sort -k1,1 -k12,12gr -k11,11g -k3,3gr | sort -u -k1,1 --merge >initialAll_vs_trRNA_blastn.out
 
 /lustre/work/apps/blast/bin/makeblastdb -in miRBase_v21.fas -dbtype nucl
 
