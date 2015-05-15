@@ -293,12 +293,17 @@ $MIRDEEP_BIN/miRDeep2.pl 		\
 #6) down the line remove miRNAs that are only expressed in one tissue
 
 
+MIRDEEP_RESULT_FILE_TSV= #<-insert this here
+
+cat -n $MIRDEEP_RESULT_FILE_TSV
 #scrolling through the result.csv file shows that the newly predicted miRNAs
 # are on lines 27-462.  Need to use the fasta sequences for these to quality filter
 
-MIRDEEP_RESULT_FILE_TSV= <-insert this here
+ 
 
-
+cat $MIRDEEP_RESULT_FILE_TSV | head -462 | tail -435 	\
+	| awk '{if ($2 >= 1) print">"$1"\n"$18}' 	\
+	>$RESULTS_DIR/predictedHairpin.fas
 
 
 #dowload rRNA and tRNA dbs - prep for blast
@@ -315,7 +320,7 @@ zcat $DATA_DIR/eukaryotic-tRNAs.fa.gz $DATA_DIR/eukaryotic-rRNAs.fa.gz \
 
 TR_RNA_DB=$RESULTS_DIR/tRNA_rRNA_2015-05-15.fas
 
-https://github.com/nealplatt/croPor_miRNAs_2015.git
+
 
 $BLAST_DIR/makeblastdb -in tRNA_rRNA_2015-04-14.fas -dbtype nucl
 
