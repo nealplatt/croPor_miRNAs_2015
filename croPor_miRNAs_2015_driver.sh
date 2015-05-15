@@ -136,7 +136,6 @@ do
 	# Step 3-2a - remove adapters and trim sequences were half the read is
 	#   Q20 or less
         $FASTX_DIR/fastx_clipper                                               	\
-                -n								\
 		-l 10                                                           \
                 -a $ADAPTER_SEQ                                                 \
                 -i $RAW_READS                                                   \
