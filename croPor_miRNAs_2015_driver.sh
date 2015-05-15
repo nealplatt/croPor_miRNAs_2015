@@ -15,7 +15,7 @@
 FASTX_DIR="/lustre/work/apps/fastx_toolkit-0.0.14/bin"
 
 # directory to miRDeep2
-MIRDEEP_DIR="/lustre/work/apps/mirdeep2_0_0_7/"
+MIRDEEP_DIR="/lustre/work/apps/mirdeep2_0_0_7"
 
 # directory to bowtie that is included with miRDeep2 
 MIRDEEP_BOWTIE="$MIRDEEP_DIR/essentials/bowtie-1.1.1"
@@ -242,7 +242,7 @@ MIRBASE_HAIRPIN=$RESULTS_DIR/gga_hairpinMirnas.fa
 #Step 4-4 
 # Begin miRDeep process with mapper.pl
 
-$MIRDEEP_BIN/mapper.pl 			\
+$MIRDEEP_DIR/mapper.pl 			\
 	config.txt 			\
 	-d 				\
 	-e 				\
@@ -260,7 +260,7 @@ $MIRDEEP_BIN/mapper.pl 			\
 #Step 4-5 
 # Identify conserved and predict novel miRNAs with miRDeep2
 
-$MIRDEEP_BIN/miRDeep2.pl 		\
+$MIRDEEP_DIR/miRDeep2.pl 		\
 	config_mapperProcessed.fa	\
 	$GENOME				\
 	config_mapper.arf	 	\
@@ -278,7 +278,7 @@ $MIRDEEP_BIN/miRDeep2.pl 		\
 #
 ################################################################################
 
-#quality filtering done in XXXXX steps.
+#quality filtering done in 5ish steps.
 
 #1) Filter out any miRNAs with mirdeep score less than 1 (awk)
 
@@ -290,7 +290,7 @@ $MIRDEEP_BIN/miRDeep2.pl 		\
 
 #5) create a fasta file to run with quantifier.pl (bedtools)
 
-#6) down the line remove miRNAs that are only expressed in one tissue
+#...) down the line remove miRNAs that are only expressed in one tissue
 
 
 MIRDEEP_RESULT_FILE_TSV=result_14_05_2015_t_15_35_12.test.csv
@@ -386,27 +386,42 @@ HIGHQUAL_HAIRPIN=$RESULTS_DIR/hq_hairpinMirna.fas
 
 
 
-
-
-
-
-
-
-
-
-################################################################################
-################################################################################
-################################################################################
-################################################################################
-################################################################################
 ################################################################################
 #
-# Commands to save for later (may be useful)
+# Step 6) Quantify miRNA expression levels
 #
-# $BLAST_DIR/blastn \
-#	-db tRNA_rRNA_2015-04-14.fas \
-#	-query initialAll_nonOverlap_miRDeep2Predictions.fas \
-#	-outfmt 6 \
-#		| sort -k1,1 -k12,12gr -k11,11g -k3,3gr \
-#		| sort -u -k1,1 --merge >initialAll_vs_trRNA_blastn.out
+################################################################################
+
+#re-run miRDeep2 so that it will map to the HQ miRNAs - no new predictions
+$MIRDEEP_DIR/miRDeep2.pl \
+	config_mapperProcessed.fa \
+	$GENOME \
+	config_mapper.arf \
+	$HIGHQUAL_MATURE \
+	none \
+	$HIGHQUAL_HAIRPIN \
+	-z .secondRndPred
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
