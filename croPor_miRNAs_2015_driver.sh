@@ -294,6 +294,7 @@ $MIRDEEP_BIN/miRDeep2.pl 		\
 
 
 MIRDEEP_RESULT_FILE_TSV=result_14_05_2015_t_15_35_12.test.csv
+$MIRDEEP_RESULT_FILE_BED=result_14_05_2015_t_15_35_12.test.bed
 
 TR_RNA_DB=$RESULTS_DIR/tRNA_rRNA_2015-05-15.fas
 
@@ -339,75 +340,52 @@ $BLAST_DIR/blastn \
 #in this case there were no hits to r or tRNAs that need to be removed
 
 
+#------------------------
+#Step 5-3 & 5.4
+# Remove overlapping miRNA predictions
 
- bedtools sort -i result_05_05_2015_t_15_10_49.initialALL.bed >result_05_05_2015_t_15_10_49.initialALL_sorted.bed 
-merge -d -1 -i result_05_05_2015_t_15_10_49.initialALL_sorted.bed | bedtools intersect -wao -a - -b result_05_05_2015_t_15_10_49.initialALL_sorted.bed >tmp
-cat tmp | perl ../bin/removeOverlappingMirnas.pl >initialAll_nonOverlap_miRDeep2Predictions.bed
-bedtools getfasta -name -fi ../../genomes/croc_sub2.assembly.fasta  -bed initialAll_nonOverlap_miRDeep2Predictions.bed -fo initialAll_nonOverlap_miRDeep2Predictions.fas
+#use bedtools to sort the miRNA prediction results (high scoring).  This will be 
+# done in two overall steps.  overlap predicted miRNAs, then overlap the galGal
+# miRNAs with the merged predictions.  Precedence goes Known -> High Expression
 
-
-/lustre/work/apps/blast/bin/makeblastdb -in miRBase_v21.fas -dbtype nucl
-
-#go to local computer to create DB and combine.
-# delete first table in mirdeep results
-remove "NOVEL:"
-
-combine in sql
-
-vertical lookup in excel
-
-create fasta -> cdhitsuite
-awk '{print ">"$17"\n"$14}' miRBaseAnnotations_miRDeepPreds_toCDHit.txt >toCDHit_mature.fas
- awk '{print ">"$17"\n"$15}' miRBaseAnnotations_miRDeepPreds_toCDHit.txt >toCDHit_precursor.fas
+#an initial test shows that there are not any overlaps between known and novel
+# miRNAs, 
+#
+#  cat $MIRDEEP_RESULT_FILE_BED | bedtools sort -i - | bedtools merge -d 1 -nms
+# | grep known | grep novel  
 
 
+# so can proceed with merging only the novel miRNAs
+cat $MIRDEEP_RESULT_FILE_BED \
+	| grep novel \
+	| bedtools sort -i - \
+	| bedtools merge -d 1 -i - \
+	| bedtools intersect -wao -a - -b $MIRDEEP_RESULT_FILE_BED \
+	>$RESULTS_DIR/novel_miRNAoverlap.bed
 
-for SORTED_BED in *_sorted.bed
-do
-
-	#create a base name for downstream files
-	BASE=$(basename $SORTED_BED _sorted.bed)
-	SAMPLE_ID=$(cut -c1,2)
-
-	
-	#for each file find the BEST scoring miRNA from those that overlap
-	$BEDTOOLS_HOME/bedtools merge 	\
-		-d -1 			\
-		-i $SORTED_BED 		\
-		| $BEDTOOLS_HOME/bedtools intersect 	\
-			-wao 				\
-			-a - 				\
-			-b $SORTED_BED 			\
-		| perl removeOverlappingMirnas.pl \
-			>$BASE"_nonOverlapMirnas.bed"
+#use a custom perl script to retain the highest scoring partner from each
+# overlapping pair (script is available on github)
+cat $RESULTS_DIR/novel_miRNAoverlap.bed \
+	| perl $BIN_DIR/removeOverlappingMirnas.pl \
+	>$RESULTS_DIR/novel_miRNA_nonoverlap.bed
 
 
-	#extract the fasta sequence from the best scoring miRNA hairpin
-	$BEDTOOLS_HOME/bedtools getfasta 		\
-		-name					\
-		-fi $GENOME 				\
-		-bed $BASE"_nonOverlapMirnas.bed"	\
-		-fo $BASE".fasta"
+#------------------------
+#Step 5-5
+# Create fasta file of HQ miRNAs
 
-	#and blast that seqeunce against a tRNA and rRNA db
-	$BLAST_HOME/blastn 					\
-		-db $TR_RNA_DB		 			\
-		-query $BASE".fasta"  				\
-		-out $BASE"_hairpins_vs_trRNA_blastn.out" 	\
-		-outfmt 6 					\
-		| sort -k1,1 -k12,12gr -k11,11g -k3,3gr 	\
-		| sort -u -k1,1 --merge >$BASE"_hairpins_vs_trRNA_blastn.out"
-		
-	#...then against a miRNA db (only output highest scoring seq)
-	$BLAST_HOME/blastn 					\
-		-db $MIRNA_DB	 				\
-		-query $BASE".fasta"  				\
-		-out $BASE"_hairpins_vs_miRBase21_blastn.out" 	\
-		-outfmt 6 					\
-		| sort -k1,1 -k12,12gr -k11,11g -k3,3gr 	\
-		| sort -u -k1,1 --merge >$BASE"_hairpins_vs_miRBase21_blastn.out"
-	
-done
+#using this information, two files were created (one for mature miRNAs and
+# the other for haiprins) that included the known and non-overlapping high qual
+# predicted miRNAs.  At this point I am kind of feeling lazy so this was done
+# manually.  Will find a CL solution at a later time. File names are listed below
+
+HIGHQUAL_MATURE=$RESULTS_DIR/hq_matureMirna.fas
+HIGHQUAL_HAIRPIN=$RESULTS_DIR/hq_hairpinMirna.fas
+#these files will be used to quantify miRNA expression levels
+
+
+
+
 
 
 
