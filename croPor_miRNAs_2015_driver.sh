@@ -400,6 +400,17 @@ $MIRDEEP_DIR/miRDeep2.pl \
 	none \
 	$HIGHQUAL_HAIRPIN \
 	-z .secondRndPred
+#not sure if i need to rerun.
+
+#quantifier may give all the necessary info
+$MIRDEEP_DIR/quantifier.pl \
+	-p hq_hairpinMirna.fas \
+	-m hq_matureMirna.fas \
+	-r config_mapperProcessed.fa \
+	-c ../config.txt \
+	-d \
+	-k \
+	-W
 
 
 
