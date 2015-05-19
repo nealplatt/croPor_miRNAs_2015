@@ -54,9 +54,9 @@ cd $WORK_DIR
 
 #Step 2 -1
 # Download the croc genome
-wget 							\
-	--directory-prefix=$DATA_DIR 			\
-	-qc						\
+wget \
+	--directory-prefix=$DATA_DIR \
+	-qc \
 	ftp://crocgenomes.org/pub/ICGWG/Genome_drafts/crocodile.current/croc_sub2.assembly.fasta.gz
 
 GENOME=$DATA_DIR/croc_sub2.assembly.fasta
@@ -114,52 +114,78 @@ echo "" >>$RESULTS_DIR/seqCountData.tab
 echo "" >>$RESULTS_DIR/seqCountData.tab
 echo "" >>$RESULTS_DIR/seqCountData.tab
 
+# Create a seqQCd folder to hold all cleaned sequence reads
+mkdir $RESULTS_DIR/seqQCd
+
+#score the quality of the raw reads
+for RAW_READS in $RESULTS_DIR/seqRaw/*.fastq
+do
+
+      SAMPLE_ID=$(basename $RAW_READS .fastq)
+	
+        $FASTX_DIR/fastx_quality_stats \
+                -Q33 \
+                -o $RESULTS_DIR/seqQCd/$SAMPLE_ID"_raw.stats" \
+                -i $RAW_READS
+
+        $FASTX_DIR/fastx_nucleotide_distribution_graph.sh \
+                -i $RESULTS_DIR/seqQCd/$SAMPLE_ID"_raw.stats" \
+                -o $RESULTS_DIR/seqQCd/$SAMPLE_ID"_raw_NUC.png" \
+                -t $RESULTS_DIR/seqQCd/$SAMPLE_ID"_raw"
+
+        $FASTX_DIR/fastq_quality_boxplot_graph.sh \
+                -i $RESULTS_DIR/seqQCd/$SAMPLE_ID"_raw.stats" \
+                -o $RESULTS_DIR/seqQCd/$SAMPLE_ID"_raw_BOX.png" \
+                -t $RESULTS_DIR/seqQCd/$SAMPLE_ID"_raw"
+done
+
+
 ################################################################################
 #
 # Step 3) Clean up the raw data and judge quality
 #
 ################################################################################
 
-#Step 3-1
-# Create a seqQCd folder to hold all cleaned sequence reads
-mkdir $RESULTS_DIR/seqQCd
-
 #------------------------
-#Step 3-2
+#Step 3-1
 # Using a for loop clip and quality trim each library
+
+
 for RAW_READS in $RESULTS_DIR/seqRaw/*.fastq
 do
 
-      SAMPLE_ID=$(basename $RAW_READS .fastq)
-	
 	#------------------------
-	# Step 3-2a - remove adapters and trim sequences were half the read is
+	# Step 3-2 - remove adapters and trim sequences were half the read is
 	#   Q20 or less
-        $FASTX_DIR/fastx_clipper                                               	\
-		-l 10                                                           \
-                -a $ADAPTER_SEQ                                                 \
-                -i $RAW_READS                                                   \
-                | $FASTX_HOME/fastq_quality_filter                              \
-                        -Q33                                                    \
-                        -q 20                                                   \
-                        -p 50							\
-                        -o $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clipped.fastq"  
+        $FASTX_DIR/fastx_clipper \
+                -l 16 \
+                -n \
+                -a $ADAPTER_SEQ \
+                -i $RAW_READS \
+                | $FASTX_DIR/fastx_trimmer \
+                        -f 1 \
+                        -l 24 \
+                        | $FASTX_DIR/fastq_quality_filter \
+                                -Q33 \
+                                -q 20 \
+                                -p 50 \
+                                -o $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clipped.fastq"  
 
 	#------------------------
-	# Step 3-2b - caclulate quality stats and output .png figures
-        $FASTX_DIR/fastx_quality_stats                                	\
-                -Q33                                                   	\
-                -o $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clipped.stats"      	\
+	# Step 3-3 - caclulate quality stats and output .png figures
+        $FASTX_DIR/fastx_quality_stats \
+                -Q33 \
+                -o $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clipped.stats" \
                 -i $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clipped.fastq"
 
-        $FASTX_DIR/fastx_nucleotide_distribution_graph.sh             	\
-                -i $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clipped.stats"      	\
-                -o $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clippedNUC.png"     	\
+        $FASTX_DIR/fastx_nucleotide_distribution_graph.sh \
+                -i $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clipped.stats" \
+                -o $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clippedNUC.png" \
                 -t $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clipped"
 
-        $FASTX_DIR/fastq_quality_boxplot_graph.sh                     	\
-                -i $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clipped.stats"      	\
-                -o $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clippedBOX.png"     	\
+        $FASTX_DIR/fastq_quality_boxplot_graph.sh \
+                -i $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clipped.stats" \
+                -o $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clippedBOX.png" \
                 -t $RESULTS_DIR/seqQCd/$SAMPLE_ID"_clipped"
 done
 
@@ -208,12 +234,12 @@ echo "$RESULTS_DIR/seqQCd/J2_spleen_clipped.fastq	J02" >>config.txt
 # Get and process the miRBase miRNAs in a way acceptable to miRDeep2
 
 #get mirbase sequences
-wget 								\
-	--directory-prefix=$DATA_DIR 				\
+wget \
+	--directory-prefix=$DATA_DIR \
 	ftp://mirbase.org/pub/mirbase/CURRENT/hairpin.fa.gz
 
-wget 								\
-	--directory-prefix=$DATA_DIR 				\
+wget \
+	--directory-prefix=$DATA_DIR \
 	ftp://mirbase.org/pub/mirbase/CURRENT/mature.fa.gz
 
 #these files have white spaces that need to be removed (for miRDeep2)
@@ -221,12 +247,12 @@ zcat $DATA_DIR/hairpin.fa.gz | cut -f1 -d" ">$RESULTS_DIR/hairpin_noSpace.fa
 zcat $DATA_DIR/mature.fa.gz | cut -f1 -d" " >$RESULTS_DIR/mature_noSpace.fa
 
 #and non-canonical nucleotides and convert to SL (for easier parsing)
-fastaparse.pl $RESULTS_DIR/hairpin_noSpace.fa -b 	\
-	| $FASTX_DIR/fasta_formatter -w 0	\
+fastaparse.pl $RESULTS_DIR/hairpin_noSpace.fa -b \
+	| $FASTX_DIR/fasta_formatter -w 0 \
 	 >$RESULTS_DIR/hairpin_cleaned.fa
 
-fastaparse.pl $RESULTS_DIR/mature_noSpace.fa -b 	\
-	| $FASTX_DIR/fasta_formatter -w 0	\
+fastaparse.pl $RESULTS_DIR/mature_noSpace.fa -b \
+	| $FASTX_DIR/fasta_formatter -w 0 \
 	 >$RESULTS_DIR/mature_cleaned.fa
 
 #grep out the chicken miRNAs
@@ -241,25 +267,25 @@ MIRBASE_HAIRPIN=$RESULTS_DIR/gga_hairpinMirnas.fa
 #Step 4-4 
 # Begin miRDeep process with mapper.pl
 
-$MIRDEEP_DIR/mapper.pl 			\
-	config.txt 			\
-	-d 				\
-	-e 				\
-	-h 				\
-	-m 				\
-	-j 				\
-	-l 18 				\
-	-v 				\
-	-n 				\
-	-s config_mapperProcessed.fa 	\
-	-t config_mapper.arf 		\
+$MIRDEEP_DIR/mapper.pl \
+	config.txt \
+	-d \
+	-e \
+	-h \
+	-m \
+	-j \
+	-l 18 \
+	-v \
+	-n \
+	-s config_mapperProcessed.fa \
+	-t config_mapper.arf \
 	-p $GENOME  					
 
 #------------------------
 #Step 4-5 
 # Identify conserved and predict novel miRNAs with miRDeep2
 
-$MIRDEEP_DIR/miRDeep2.pl 		\
+$MIRDEEP_DIR/miRDeep2.pl \
 	config_mapperProcessed.fa	\
 	$GENOME				\
 	config_mapper.arf	 	\
@@ -404,8 +430,8 @@ $MIRDEEP_DIR/miRDeep2.pl \
 
 #quantifier may give all the necessary info
 $MIRDEEP_DIR/quantifier.pl \
-	-p hq_hairpinMirna.fas \
-	-m hq_matureMirna.fas \
+	-p $HIGHQUAL_HAIRPIN \
+	-m $HIGHQUAL_MATURE \
 	-r config_mapperProcessed.fa \
 	-c ../config.txt \
 	-d \
