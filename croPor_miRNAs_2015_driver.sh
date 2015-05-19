@@ -409,7 +409,6 @@ $MIRDEEP_DIR/quantifier.pl \
 	-r config_mapperProcessed.fa \
 	-c ../config.txt \
 	-d \
-	-k \
 	-W
 
 
