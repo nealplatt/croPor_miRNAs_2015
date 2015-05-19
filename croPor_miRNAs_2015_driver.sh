@@ -154,6 +154,8 @@ done
 for RAW_READS in $RESULTS_DIR/seqRaw/*.fastq
 do
 
+        SAMPLE_ID=$(basename $RAW_READS .fastq)
+	
 	#------------------------
 	# Step 3-2 - remove adapters and trim sequences were half the read is
 	#   Q20 or less
