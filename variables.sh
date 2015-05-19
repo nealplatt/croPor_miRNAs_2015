@@ -1,13 +1,13 @@
 FASTX_DIR="/lustre/work/apps/fastx_toolkit-0.0.14/bin"
+WORK_DIR="/lustre/scratch/roplatt/croPor_miRNAs_2015"
+RESULTS_DIR="/lustre/scratch/roplatt/croPor_miRNAs_2015/results"
+DATA_DIR="/lustre/scratch/roplatt/croPor_miRNAs_2015/data"
+BIN_DIR="/lustre/scratch/roplatt/croPor_miRNAs_2015/bin"
 GENOME=$DATA_DIR/croc_sub2.assembly.fasta
 MIRDEEP_DIR="/lustre/work/apps/mirdeep2_0_0_7/"
 MIRDEEP_BOWTIE="$MIRDEEP_DIR/essentials/bowtie-1.1.1"
 BLAST_DIR=/lustre/work/apps/blast/bin
 BEDTOOLS_DIR=/lustre/work/apps/bedtools-2.17.0/bin
-WORK_DIR="/lustre/scratch/roplatt/croPor_miRNAs_2015"
-RESULTS_DIR="/lustre/scratch/roplatt/croPor_miRNAs_2015/results"
-DATA_DIR="/lustre/scratch/roplatt/croPor_miRNAs_2015/data"
-BIN_DIR="/lustre/scratch/roplatt/croPor_miRNAs_2015/bin"
 ADAPTER_SEQ=AGATCGGAAGAGCACACGTCTGAACTCCAGTCAC
 MIRBASE_MATURE=$RESULTS_DIR/gga_matureMirnas.fa
 MIRBASE_HAIRPIN=$RESULTS_DIR/gga_hairpinMirnas.fa
