@@ -105,15 +105,6 @@ zcat $DATA_DIR/E1*R1*.gz > $RESULTS_DIR/seqRaw/E1_testis.fastq
 zcat $DATA_DIR/J2*R1*.gz > $RESULTS_DIR/seqRaw/J2_spleen.fastq
 
 
-# count the available data (per library)
-echo "#####################"  >$RESULTS_DIR/seqCountData.tab
-echo "###   RAW READS   ###" >>$RESULTS_DIR/seqCountData.tab
-echo "#####################" >>$RESULTS_DIR/seqCountData.tab
-wc -l $RESULTS_DIR/seqRaw/*fastq | awk '{print $1/4"\t"$2}' >>$RESULTS_DIR/seqCountData.tab
-echo "" >>$RESULTS_DIR/seqCountData.tab
-echo "" >>$RESULTS_DIR/seqCountData.tab
-echo "" >>$RESULTS_DIR/seqCountData.tab
-
 # Create a seqQCd folder to hold all cleaned sequence reads
 mkdir $RESULTS_DIR/seqQCd
 
@@ -138,6 +129,15 @@ do
                 -o $RESULTS_DIR/seqQCd/$SAMPLE_ID"_raw_BOX.png" \
                 -t $RESULTS_DIR/seqQCd/$SAMPLE_ID"_raw"
 done
+
+# count the available data (per library)
+echo "#####################"  >$RESULTS_DIR/seqCountData.tab
+echo "###   RAW READS   ###" >>$RESULTS_DIR/seqCountData.tab
+echo "#####################" >>$RESULTS_DIR/seqCountData.tab
+wc -l $RESULTS_DIR/seqRaw/*fastq | awk '{print $1/4"\t"$2}' >>$RESULTS_DIR/seqCountData.tab
+echo "" >>$RESULTS_DIR/seqCountData.tab
+echo "" >>$RESULTS_DIR/seqCountData.tab
+echo "" >>$RESULTS_DIR/seqCountData.tab
 
 
 ################################################################################
@@ -214,22 +214,22 @@ cd $RESULTS_DIR/initalPredictions
 #------------------------
 #Step 4-2
 # miRDeep2 needs a config file to run analysis on combined data
-echo "$RESULTS_DIR/seqQCd/D10_testis_clipped.fastq	D10"  >config.txt
-echo "$RESULTS_DIR/seqQCd/D6_testis_clipped.fastq	D06" >>config.txt
-echo "$RESULTS_DIR/seqQCd/H6_jawSkin_clipped.fastq	H06" >>config.txt
-echo "$RESULTS_DIR/seqQCd/J4_cloaca_clipped.fastq	J04" >>config.txt
-echo "$RESULTS_DIR/seqQCd/J6_bellySkin_clipped.fastq	J06" >>config.txt
-echo "$RESULTS_DIR/seqQCd/K1_smIntestine_clipped.fastq	K01" >>config.txt
-echo "$RESULTS_DIR/seqQCd/M2_brain_clipped.fastq	M02" >>config.txt
-echo "$RESULTS_DIR/seqQCd/M6_tongue_clipped.fastq	M06" >>config.txt
-echo "$RESULTS_DIR/seqQCd/O4_liver_clipped.fastq	O04" >>config.txt
-echo "$RESULTS_DIR/seqQCd/P6_heart_clipped.fastq	P06" >>config.txt
-echo "$RESULTS_DIR/seqQCd/P7_stomach_clipped.fastq	P07" >>config.txt
-echo "$RESULTS_DIR/seqQCd/P8_heart_clipped.fastq	P08" >>config.txt
-echo "$RESULTS_DIR/seqQCd/Q3_brain_clipped.fastq	Q03" >>config.txt
-echo "$RESULTS_DIR/seqQCd/D2_testis_clipped.fastq	D02" >>config.txt
-echo "$RESULTS_DIR/seqQCd/E1_testis_clipped.fastq	E01" >>config.txt
-echo "$RESULTS_DIR/seqQCd/J2_spleen_clipped.fastq	J02" >>config.txt
+echo $RESULTS_DIR/seqQCd/D10_testis_clipped.fastq       D10>config.txt
+echo $RESULTS_DIR/seqQCd/D6_testis_clipped.fastq        D06>>config.txt
+echo $RESULTS_DIR/seqQCd/H6_jawSkin_clipped.fastq       H06>>config.txt
+echo $RESULTS_DIR/seqQCd/J4_cloaca_clipped.fastq        J04>>config.txt
+echo $RESULTS_DIR/seqQCd/J6_bellySkin_clipped.fastq     J06>>config.txt
+echo $RESULTS_DIR/seqQCd/K1_smIntestine_clipped.fastq   K01>>config.txt
+echo $RESULTS_DIR/seqQCd/M2_brain_clipped.fastq M02>>config.txt
+echo $RESULTS_DIR/seqQCd/M6_tongue_clipped.fastq        M06>>config.txt
+echo $RESULTS_DIR/seqQCd/O4_liver_clipped.fastq O04>>config.txt
+echo $RESULTS_DIR/seqQCd/P6_heart_clipped.fastq P06>>config.txt
+echo $RESULTS_DIR/seqQCd/P7_stomach_clipped.fastq       P07>>config.txt
+echo $RESULTS_DIR/seqQCd/P8_heart_clipped.fastq P08>>config.txt
+echo $RESULTS_DIR/seqQCd/Q3_brain_clipped.fastq Q03>>config.txt
+echo $RESULTS_DIR/seqQCd/D2_testis_clipped.fastq        D02>>config.txt
+echo $RESULTS_DIR/seqQCd/E1_testis_clipped.fastq        E01>>config.txt
+echo $RESULTS_DIR/seqQCd/J2_spleen_clipped.fastq        J02>>config.txt
 
 #------------------------
 #Step 4-3
@@ -270,31 +270,31 @@ MIRBASE_HAIRPIN=$RESULTS_DIR/gga_hairpinMirnas.fa
 # Begin miRDeep process with mapper.pl
 
 $MIRDEEP_DIR/mapper.pl \
-	config.txt \
-	-d \
-	-e \
-	-h \
-	-m \
-	-j \
-	-l 18 \
-	-v \
-	-n \
-	-s config_mapperProcessed.fa \
-	-t config_mapper.arf \
-	-p $GENOME  					
+        config.txt \
+        -d \
+        -e \
+        -h \
+        -m \
+        -j \
+        -l 18 \
+        -v \
+        -n \
+        -s config_mapperProcessed.fa \
+        -t config_mapper.arf \
+        -p $GENOME
 
 #------------------------
 #Step 4-5 
 # Identify conserved and predict novel miRNAs with miRDeep2
 
 $MIRDEEP_DIR/miRDeep2.pl \
-	config_mapperProcessed.fa	\
-	$GENOME				\
-	config_mapper.arf	 	\
-	$MIRBASE_MATURE			\
-	none				\
-	$MIRBASE_HAIRPIN		\
-	-z .initialPred			\
+	config_mapperProcessed.fa \
+	$GENOME \
+	config_mapper.arf \
+	$MIRBASE_MATURE \
+	none \
+	$MIRBASE_HAIRPIN \
+	-z .initialPred \
 	-P
 
 
@@ -334,8 +334,8 @@ cat -n $MIRDEEP_RESULT_FILE_TSV
 #In this case lines 27-462 contain novel miRNAs
 
 #cat only the novel miRNAs and print out the ones score >=1 to a fasta file
-cat $MIRDEEP_RESULT_FILE_TSV | head -462 | tail -435 	\
-	| awk '{if ($2 >= 1) print">"$1"\n"$18}' 	\
+cat $MIRDEEP_RESULT_FILE_TSV | head -462 | tail -435 \
+	| awk '{if ($2 >= 1) print">"$1"\n"$18}' \
 	>$RESULTS_DIR/predictedHairpin.fas
 
 #------------------------
@@ -343,8 +343,8 @@ cat $MIRDEEP_RESULT_FILE_TSV | head -462 | tail -435 	\
 # Compare miRNA hairpins to tRNAs and rRNAs via Blast
 
 #dowload rRNA and tRNA dbs - prep for blast
-wget 									\
-	--directory-prefix=$DATA_DIR					\
+wget \
+	--directory-prefix=$DATA_DIR \
 	http://gtrnadb.ucsc.edu/download/tRNAs/eukaryotic-tRNAs.fa.gz
 
 #rRNA db done by hand from http://www.arb-silva.de/download/
