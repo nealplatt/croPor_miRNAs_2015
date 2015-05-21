@@ -306,16 +306,12 @@ $MIRDEEP_DIR/miRDeep2.pl \
 ################################################################################
 
 #quality filtering done in 5ish steps.
-
-#1) Filter out any miRNAs with mirdeep score less than 2 (awk)
-
-#2) All predicted miRNAs that are similar to tRNAs or rRNAs are removed. (blast)
-
-#3) Keep on the highest scoring in overlapping pairs (perl/bedtools)
-
-#4) Overlap with the known/identified galGal miRNAs, retain galGal designation (bedtools)
-
-#5) create a fasta file to run with quantifier.pl (bedtools)
+#1) All predicted miRNAs that are similar to tRNAs or rRNAs are removed. (blast)
+#2) Keep on the highest scoring in overlapping pairs (perl/bedtools)
+#3) Filter out any miRNAs with mirdeep score less than 2 (awk)
+#4) Remove any miRNA that lacks a significant RandFold value (=yes)
+#5) remove any where the hairpin was observe <10x
+#6) create a fasta file of HqQ seqs to run with quantifier.pl 
 
 #...) down the line remove miRNAs that are only expressed in one tissue
 
@@ -353,12 +349,10 @@ $BLAST_DIR/blastn \
 
 #in this case there was a single hitto r or tRNAs that need to be removed
 # cut -f1 predictedHairpin_vs_trRNA_blastn.out | sort | uniq
-# scaffold-5127_11606 <----------------------------------------------------------This will be done at a later point
-
 grep -v `cut -f1 $RESULTS_DIR/initalPredictions/predictedHairpin_vs_trRNA_blastn.out | sort | uniq` $MIRDEEP_RESULT_FILE_BED >$MIRDEEP_RESULT_FILE_BED.noRNA
 
 #------------------------
-#Step 5-2 & 5.3
+#Step 5-2
 # Remove overlapping miRNA predictions
 
 #use bedtools to sort the miRNA prediction results (high scoring).  This will be 
@@ -387,6 +381,8 @@ cat $RESULTS_DIR/initalPredictions/all_miRNAoverlap.bed \
 	| perl $BIN_DIR/removeOverlappingMirnas.pl \
 	>$RESULTS_DIR/initalPredictions/all_miRNA_nonoverlap.bed
 
+#------------------------
+#Step 5-3
 #filter any miRNAs that score less than $MIRDEEP2SCORE
 MIRDEEP2SCORE=2
 
@@ -409,18 +405,23 @@ grep -f sigRandFold.list all_miRNA_gt$MIRDEEP2SCORE.bed \
 #  of greps
  sed -r 's/novel:|known://gi' hq_inital_miRNAs.list >hq_inital_miRNAs.cleanList
 
+#------------------------
+#Step 5-5
+# Remove miRNAs observed less than 10x over the entire hairpin
+
 #Do another poormans inner join to remove miRNAs observed less than 10 times
  grep -f hq_inital_miRNAs.cleaList $MIRDEEP_RESULT_FILE_TSV \
     | cut -f1,5,10 \
     | awk '{if ($2 >=10)  print $1}' \
     > hq_inital_miRNAs_gt10.list
 
-
-
+#------------------------
+#Step 5-6
+# Create a fasta file of HQ miRNAs for downstream analyses
 #Do a final poorman's join to generate a fasta file of HQ miRNAs via custom perl
 #  script (on gitHub)
 grep -f hq_inital_miRNAs_gt10.list $MIRDEEP_RESULT_FILE_TSV \
-    | cut -f 1,10,14,16 | $BIN_DIR/genHQseq.pl $HIGHQUAL_MATURE $HIGHQUAL_HAIRPIN
+    | cut -f 1,10,14,16 | $BIN_DIR/genHQseq.pl 
 
 HIGHQUAL_MATURE=$RESULTS_DIR/initalPredictions/hq_matureMirna.fas
 HIGHQUAL_HAIRPIN=$RESULTS_DIR/initalPredictions/hq_hairpinMirna.fas
@@ -432,12 +433,11 @@ HIGHQUAL_HAIRPIN=$RESULTS_DIR/initalPredictions/hq_hairpinMirna.fas
 # Step 6) Quantify miRNA expression levels
 #
 ################################################################################
+
+#create a new directory for all quantification steps.
 QUANT_DIR=$RESULTS_DIR/allQuantified
 mkdir $QUANT_DIR
 cd $QUANT_DIR
-
-/lustre/scratch/roplatt/croPor_miRNAs_2015/results/initalPredictions/config_mapperProcessed.fa
-/lustre/scratch/roplatt/croPor_miRNAs_2015/results/initialPredictions/config_mapperProcessed.fa
 
 #re-run miRDeep2 so that it will map to the HQ miRNAs - no new predictions
 $MIRDEEP_DIR/miRDeep2.pl \
@@ -448,7 +448,6 @@ $MIRDEEP_DIR/miRDeep2.pl \
     none \
     $HIGHQUAL_HAIRPIN \
     -z .secondRndPred
-#not sure if i need to rerun.
 
 #quantifier may give all the necessary info
 $MIRDEEP_DIR/quantifier.pl \
@@ -458,26 +457,5 @@ $MIRDEEP_DIR/quantifier.pl \
 	-c ../config.txt \
 	-d \
 	-W
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
