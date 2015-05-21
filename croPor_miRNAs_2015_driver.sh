@@ -417,30 +417,14 @@ grep -f sigRandFold.list all_miRNA_gt$MIRDEEP2SCORE.bed \
 
 
 
-#Do a final poorman's join to generate a fasta file of HQ miRNAs
+#Do a final poorman's join to generate a fasta file of HQ miRNAs via custom perl
+#  script (on gitHub)
 grep -f hq_inital_miRNAs_gt10.list $MIRDEEP_RESULT_FILE_TSV \
     | cut -f 1,10,14,16 | $BIN_DIR/genHQseq.pl $HIGHQUAL_MATURE $HIGHQUAL_HAIRPIN
 
 HIGHQUAL_MATURE=$RESULTS_DIR/initalPredictions/hq_matureMirna.fas
 HIGHQUAL_HAIRPIN=$RESULTS_DIR/initalPredictions/hq_hairpinMirna.fas
-
-
-
-
-#------------------------
-#Step 5-5
-# Create fasta file of HQ miRNAs
-
-#using this information, two files were created (one for mature miRNAs and
-# the other for haiprins) that included the known and non-overlapping high qual
-# predicted miRNAs.  At this point I am kind of feeling lazy so this was done
-# manually.  Will find a CL solution at a later time. File names are listed below
-
-HIGHQUAL_MATURE=$RESULTS_DIR/hq_matureMirna.fas
-HIGHQUAL_HAIRPIN=$RESULTS_DIR/hq_hairpinMirna.fas
 #these files will be used to quantify miRNA expression levels
-
-
 
 
 ################################################################################
@@ -448,27 +432,32 @@ HIGHQUAL_HAIRPIN=$RESULTS_DIR/hq_hairpinMirna.fas
 # Step 6) Quantify miRNA expression levels
 #
 ################################################################################
+QUANT_DIR=$RESULTS_DIR/allQuantified
+mkdir $QUANT_DIR
+cd $QUANT_DIR
+
+/lustre/scratch/roplatt/croPor_miRNAs_2015/results/initalPredictions/config_mapperProcessed.fa
+/lustre/scratch/roplatt/croPor_miRNAs_2015/results/initialPredictions/config_mapperProcessed.fa
 
 #re-run miRDeep2 so that it will map to the HQ miRNAs - no new predictions
 $MIRDEEP_DIR/miRDeep2.pl \
-	config_mapperProcessed.fa \
-	$GENOME \
-	config_mapper.arf \
-	$HIGHQUAL_MATURE \
-	none \
-	$HIGHQUAL_HAIRPIN \
-	-z .secondRndPred
+    $RESULTS_DIR/initalPredictions/config_mapperProcessed.fa \
+    $GENOME \
+    $RESULTS_DIR/initalPredictions/config_mapper.arf \
+    $HIGHQUAL_MATURE \
+    none \
+    $HIGHQUAL_HAIRPIN \
+    -z .secondRndPred
 #not sure if i need to rerun.
 
 #quantifier may give all the necessary info
 $MIRDEEP_DIR/quantifier.pl \
 	-p $HIGHQUAL_HAIRPIN \
 	-m $HIGHQUAL_MATURE \
-	-r config_mapperProcessed.fa \
+	-r $RESULTS_DIR/initalPredictions/config_mapperProcessed.fa \
 	-c ../config.txt \
 	-d \
 	-W
-
 
 
 
