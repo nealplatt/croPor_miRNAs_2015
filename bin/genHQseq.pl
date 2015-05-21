@@ -1,7 +1,7 @@
 $i = 1;
 
 open MATURE, '>', hq_matureMirna.fas;
-open HAIRPIN, '>', hq_hairpin.fas;
+open HAIRPIN, '>', hq_hairpinMirna.fas;
 
 while(<>){
     chomp;
