@@ -320,28 +320,13 @@ $MIRDEEP_DIR/miRDeep2.pl \
 #...) down the line remove miRNAs that are only expressed in one tissue
 
 
-MIRDEEP_RESULT_FILE_TSV=result_20_05_2015_t_13_36_32.initialPred.csv
-MIRDEEP_RESULT_FILE_BED=result_20_05_2015_t_13_36_32.initialPred.bed
+MIRDEEP_RESULT_FILE_TSV=$RESULTS_DIR/initalPredictions/result_20_05_2015_t_13_36_32.initialPred.csv
+MIRDEEP_RESULT_FILE_BED=$RESULTS_DIR/initalPredictions/result_20_05_2015_t_13_36_32.initialPred.bed
 
 TR_RNA_DB=$RESULTS_DIR/tRNA_rRNA_2015-05-15.fas
 
 #------------------------
 #Step 5-1
-# make a file of miRNA hairpins >= 1 scrore 
-
-#Scroll through results file to find the lines containing novel miRNAs
-cat -n $MIRDEEP_RESULT_FILE_TSV | less
-#In this case lines 27-462 contain novel miRNAs
-
-#cat only the novel miRNAs and print out the ones score >=1 to a fasta file
-
-
-cat $MIRDEEP_RESULT_FILE_TSV | head -647 | tail -620 \
-	| awk '{if ($2 >= 2 && $9 == yes) print">"$1"\n"$18}' \
-	>$RESULTS_DIR/initalPredictions/predictedHairpin.fas
-
-#------------------------
-#Step 5-2
 # Compare miRNA hairpins to tRNAs and rRNAs via Blast
 
 #dowload rRNA and tRNA dbs - prep for blast
@@ -370,14 +355,10 @@ $BLAST_DIR/blastn \
 # cut -f1 predictedHairpin_vs_trRNA_blastn.out | sort | uniq
 # scaffold-5127_11606 <----------------------------------------------------------This will be done at a later point
 
-grep `cut -f1 predictedHairpin_vs_trRNA_blastn.out | sort | uniq` 
-
-# find way to remove this file, then go through and filter based on overlapping.
-
-
+grep -v `cut -f1 $RESULTS_DIR/initalPredictions/predictedHairpin_vs_trRNA_blastn.out | sort | uniq` $MIRDEEP_RESULT_FILE_BED >$MIRDEEP_RESULT_FILE_BED.noRNA
 
 #------------------------
-#Step 5-3 & 5.4
+#Step 5-2 & 5.3
 # Remove overlapping miRNA predictions
 
 #use bedtools to sort the miRNA prediction results (high scoring).  This will be 
@@ -386,7 +367,7 @@ grep `cut -f1 predictedHairpin_vs_trRNA_blastn.out | sort | uniq`
 
 #an initial test shows that there are not any overlaps between known and novel
 # miRNAs, 
-cat $MIRDEEP_RESULT_FILE_BED \
+cat $MIRDEEP_RESULT_FILE_BED.noRNA \
         | bedtools sort -i - \
         | bedtools merge -d 1 -nms \
         | grep known \
@@ -394,18 +375,56 @@ cat $MIRDEEP_RESULT_FILE_BED \
 
 
 # so can proceed with merging only the novel miRNAs
-cat $MIRDEEP_RESULT_FILE_BED \
-	| grep novel \
+cat $MIRDEEP_RESULT_FILE_BED.noRNA \
 	| bedtools sort -i - \
 	| bedtools merge -d 1 -i - \
-	| bedtools intersect -wao -a - -b $MIRDEEP_RESULT_FILE_BED \
-	>$RESULTS_DIR/initalPredictions/novel_miRNAoverlap.bed
+	| bedtools intersect -wao -a - -b $MIRDEEP_RESULT_FILE_BED.noRNA \
+	>$RESULTS_DIR/initalPredictions/all_miRNAoverlap.bed
 
 #use a custom perl script to retain the highest scoring partner from each
 # overlapping pair (script is available on github)
-cat $RESULTS_DIR/initalPredictions/novel_miRNAoverlap.bed \
+cat $RESULTS_DIR/initalPredictions/all_miRNAoverlap.bed \
 	| perl $BIN_DIR/removeOverlappingMirnas.pl \
-	>$RESULTS_DIR/initalPredictions/novel_miRNA_nonoverlap.bed
+	>$RESULTS_DIR/initalPredictions/all_miRNA_nonoverlap.bed
+
+#filter any miRNAs that score less than $MIRDEEP2SCORE
+MIRDEEP2SCORE=2
+
+awk '{ if ($5>='"$MIRDEEP2SCORE"') print $0}' $RESULTS_DIR/initalPredictions/all_miRNA_nonoverlap.bed \
+     >all_miRNA_gt$MIRDEEP2SCORE.bed
+ 
+#------------------------
+#Step 5-4
+# make a file of miRNA hairpins with sigRandFold=Yes 
+awk '{if ($11=="yes") print $1}' $MIRDEEP_RESULT_FILE_TSV >sigRandFold.list
+
+#use the sigFold list as input terms for a grep search.  This will remove all 
+#  non significant miRNAs (poormans inner join).
+
+grep -f sigRandFold.list all_miRNA_gt$MIRDEEP2SCORE.bed \
+    | awk '{print $4}' \
+    >hq_inital_miRNAs.list 
+
+#remove the "novel" or "known" designators from the hq_list for the next round
+#  of greps
+ sed -r 's/novel:|known://gi' hq_inital_miRNAs.list >hq_inital_miRNAs.cleanList
+
+#Do another poormans inner join to remove miRNAs observed less than 10 times
+ grep -f hq_inital_miRNAs.cleaList $MIRDEEP_RESULT_FILE_TSV \
+    | cut -f1,5,10 \
+    | awk '{if ($2 >=10)  print $1}' \
+    > hq_inital_miRNAs_gt10.list
+
+
+
+#Do a final poorman's join to generate a fasta file of HQ miRNAs
+grep -f hq_inital_miRNAs_gt10.list $MIRDEEP_RESULT_FILE_TSV \
+    | cut -f 1,10,14,16 | $BIN_DIR/genHQseq.pl $HIGHQUAL_MATURE $HIGHQUAL_HAIRPIN
+
+HIGHQUAL_MATURE=$RESULTS_DIR/initalPredictions/hq_matureMirna.fas
+HIGHQUAL_HAIRPIN=$RESULTS_DIR/initalPredictions/hq_hairpinMirna.fas
+
+
 
 
 #------------------------
