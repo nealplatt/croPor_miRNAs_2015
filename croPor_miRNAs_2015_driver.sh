@@ -307,7 +307,7 @@ $MIRDEEP_DIR/miRDeep2.pl \
 
 #quality filtering done in 5ish steps.
 
-#1) Filter out any miRNAs with mirdeep score less than 1 (awk)
+#1) Filter out any miRNAs with mirdeep score less than 2 (awk)
 
 #2) All predicted miRNAs that are similar to tRNAs or rRNAs are removed. (blast)
 
@@ -320,8 +320,8 @@ $MIRDEEP_DIR/miRDeep2.pl \
 #...) down the line remove miRNAs that are only expressed in one tissue
 
 
-MIRDEEP_RESULT_FILE_TSV=result_14_05_2015_t_15_35_12.test.csv
-$MIRDEEP_RESULT_FILE_BED=result_14_05_2015_t_15_35_12.test.bed
+MIRDEEP_RESULT_FILE_TSV=result_20_05_2015_t_13_36_32.initialPred.csv
+MIRDEEP_RESULT_FILE_BED=result_20_05_2015_t_13_36_32.initialPred.bed
 
 TR_RNA_DB=$RESULTS_DIR/tRNA_rRNA_2015-05-15.fas
 
@@ -330,13 +330,15 @@ TR_RNA_DB=$RESULTS_DIR/tRNA_rRNA_2015-05-15.fas
 # make a file of miRNA hairpins >= 1 scrore 
 
 #Scroll through results file to find the lines containing novel miRNAs
-cat -n $MIRDEEP_RESULT_FILE_TSV
+cat -n $MIRDEEP_RESULT_FILE_TSV | less
 #In this case lines 27-462 contain novel miRNAs
 
 #cat only the novel miRNAs and print out the ones score >=1 to a fasta file
-cat $MIRDEEP_RESULT_FILE_TSV | head -462 | tail -435 \
-	| awk '{if ($2 >= 1) print">"$1"\n"$18}' \
-	>$RESULTS_DIR/predictedHairpin.fas
+
+
+cat $MIRDEEP_RESULT_FILE_TSV | head -647 | tail -620 \
+	| awk '{if ($2 >= 2 && $9 == yes) print">"$1"\n"$18}' \
+	>$RESULTS_DIR/initalPredictions/predictedHairpin.fas
 
 #------------------------
 #Step 5-2
@@ -360,11 +362,18 @@ $BLAST_DIR/makeblastdb -in $TR_RNA_DB -dbtype nucl
 
 $BLAST_DIR/blastn \
 	-db $TR_RNA_DB \
-	-query $RESULTS_DIR/predictedHairpin.fas \
+	-query $RESULTS_DIR/initalPredictions/predictedHairpin.fas \
 	-outfmt 6 \
-	>$RESULTS_DIR/predictedHairpin_vs_trRNA_blastn.out
+	>$RESULTS_DIR/initalPredictions/predictedHairpin_vs_trRNA_blastn.out
 
-#in this case there were no hits to r or tRNAs that need to be removed
+#in this case there was a single hitto r or tRNAs that need to be removed
+# cut -f1 predictedHairpin_vs_trRNA_blastn.out | sort | uniq
+# scaffold-5127_11606 <----------------------------------------------------------This will be done at a later point
+
+grep `cut -f1 predictedHairpin_vs_trRNA_blastn.out | sort | uniq` 
+
+# find way to remove this file, then go through and filter based on overlapping.
+
 
 
 #------------------------
@@ -377,9 +386,11 @@ $BLAST_DIR/blastn \
 
 #an initial test shows that there are not any overlaps between known and novel
 # miRNAs, 
-#
-#  cat $MIRDEEP_RESULT_FILE_BED | bedtools sort -i - | bedtools merge -d 1 -nms
-# | grep known | grep novel  
+cat $MIRDEEP_RESULT_FILE_BED \
+        | bedtools sort -i - \
+        | bedtools merge -d 1 -nms \
+        | grep known \
+        | grep novel  
 
 
 # so can proceed with merging only the novel miRNAs
@@ -388,13 +399,13 @@ cat $MIRDEEP_RESULT_FILE_BED \
 	| bedtools sort -i - \
 	| bedtools merge -d 1 -i - \
 	| bedtools intersect -wao -a - -b $MIRDEEP_RESULT_FILE_BED \
-	>$RESULTS_DIR/novel_miRNAoverlap.bed
+	>$RESULTS_DIR/initalPredictions/novel_miRNAoverlap.bed
 
 #use a custom perl script to retain the highest scoring partner from each
 # overlapping pair (script is available on github)
-cat $RESULTS_DIR/novel_miRNAoverlap.bed \
+cat $RESULTS_DIR/initalPredictions/novel_miRNAoverlap.bed \
 	| perl $BIN_DIR/removeOverlappingMirnas.pl \
-	>$RESULTS_DIR/novel_miRNA_nonoverlap.bed
+	>$RESULTS_DIR/initalPredictions/novel_miRNA_nonoverlap.bed
 
 
 #------------------------
